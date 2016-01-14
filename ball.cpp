@@ -14,6 +14,11 @@ Ball::Ball(){
 
 Ball::~Ball(){}
 
+void Ball::ballSpeed(){
+	ballSpeedX += 5;
+	ballSpeedY += 3;
+}
+
 void Ball::setLocation(){
 	ballX += ballSpeedX;
 	ballY += ballSpeedY;

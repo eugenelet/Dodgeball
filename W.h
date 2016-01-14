@@ -27,7 +27,7 @@ class PainterWidget: public QWidget{
 			~PainterWidget();
 		 	void paintEvent(QPaintEvent*); ///gene
 			void setFaceDetect(); //gene
-			void addBall(IplImage*);	
+			void addBall(IplImage*, IplImage*);	
 			void processImage(IplImage*);//dog
 			Ball myBall;		
 			IplImage* ball;	
@@ -39,13 +39,14 @@ class PainterWidget: public QWidget{
                         void setDetect();
 			void update();
 			void setStart();
+			void setReset();
                         //void new_window(); 
 		private:
 		//data members
 			QPushButton *btnDetect; //gene
 			QImage image; //gene
 			int detect; //gene
-
+			int game_over;
                         IplImage* iplimg; //gene
                         QTimer *timer; //gene			
 			QImage qImage;	//dog
@@ -53,6 +54,7 @@ class PainterWidget: public QWidget{
 			QLabel *touchText;
 			Mat backgroundImage;
 
+			QPushButton* Reset;
 
 			QPushButton* Play;
 
@@ -63,6 +65,8 @@ class PainterWidget: public QWidget{
                         QLabel* Score_text;
 
                         QLabel* Score_number;
+			
+			QLabel* Out_of_zone_warning;			
 
                         int health_number;
 
@@ -72,7 +76,10 @@ class PainterWidget: public QWidget{
 			int startGame;
 
 			IplImage* dodgeball;
+			IplImage* game_over_img
+;
 			QImage dodgeball_display;	
+			QImage gameover_display;	
 
 			int upperTouch;
 			int lowerTouch;

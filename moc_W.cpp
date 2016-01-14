@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'W.h'
 **
-** Created: Fri Dec 25 10:19:25 2015
+** Created: Wed Dec 30 17:31:37 2015
 **      by: The Qt Meta Object Compiler version 62 (Qt 4.7.4)
 **
 ** WARNING! All changes made in this file will be lost!
@@ -23,7 +23,7 @@ static const uint qt_meta_data_PainterWidget[] = {
        5,       // revision
        0,       // classname
        0,    0, // classinfo
-       3,   14, // methods
+       4,   14, // methods
        0,    0, // properties
        0,    0, // enums/sets
        0,    0, // constructors
@@ -34,13 +34,14 @@ static const uint qt_meta_data_PainterWidget[] = {
       15,   14,   14,   14, 0x0a,
       27,   14,   14,   14, 0x0a,
       36,   14,   14,   14, 0x0a,
+      47,   14,   14,   14, 0x0a,
 
        0        // eod
 };
 
 static const char qt_meta_stringdata_PainterWidget[] = {
     "PainterWidget\0\0setDetect()\0update()\0"
-    "setStart()\0"
+    "setStart()\0setReset()\0"
 };
 
 const QMetaObject PainterWidget::staticMetaObject = {
@@ -75,9 +76,10 @@ int PainterWidget::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
         case 0: setDetect(); break;
         case 1: update(); break;
         case 2: setStart(); break;
+        case 3: setReset(); break;
         default: ;
         }
-        _id -= 3;
+        _id -= 4;
     }
     return _id;
 }

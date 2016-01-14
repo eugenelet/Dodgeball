@@ -27,6 +27,9 @@ unsigned int img[CAM_WIDTH*CAM_HEIGHT*sizeof(unsigned int)];
 static CvMemStorage * storage = 0;
 static CvHaarClassifierCascade * cascade = 0;
 
+const int HEALTH_NUM = 30;
+const int SCORE_NUM = 0;
+
 
 QImage *IplImageToQImage(IplImage* cvimage);
 IplImage *QImageToIplImage( QImage * qImage);
@@ -69,6 +72,7 @@ PainterWidget::PainterWidget(QWidget *parent):QWidget(){
 	lowerTouch = 0;
 	upperTouch = 0;
 	passTouch = 0;
+	game_over = 0;
 	camera_init(&fd,&camera_buffers,1);
 
 
@@ -76,55 +80,65 @@ PainterWidget::PainterWidget(QWidget *parent):QWidget(){
 	Health_text->setText("Health");
 	//Health_text->setGeometry(50,50,150,60);
 	Health_text->setGeometry(1000,1000,150,60);
-	Health_text->setFont(QFont("Courier",15,QFont::Bold));
+	Health_text->setFont(QFont("Courier",25,QFont::Bold));
 
-	health_number=50;
+	health_number=HEALTH_NUM;
 	Health_number = new QLabel(this);
 	Health_number->setNum(health_number);
 	//Health_number->setGeometry(50,120,80,60);
 	Health_number->setGeometry(1000,1000,80,60);
-	Health_number->setFont(QFont("Courier",18,QFont::Bold));
+	Health_number->setFont(QFont("Courier",70,QFont::Bold));
 
 	Score_text = new QLabel(this);
 	Score_text->setText("Score");
 	//Score_text->setGeometry(650,50,120,60);
 	Score_text->setGeometry(1000,1000,120,60);
-	Score_text->setFont(QFont("Courier",15,QFont::Bold));
+	Score_text->setFont(QFont("Courier",25,QFont::Bold));
 
 
 
-	score_number=0;
+	score_number=SCORE_NUM;
 	Score_number = new QLabel(this);
 	Score_number->setNum(score_number);
 	//Score_number->setGeometry(650,120,80,60);
-	Score_number->setGeometry(1000,1000,80,60);
-	Score_number->setFont(QFont("Courier",18,QFont::Bold));
+	Score_number->setGeometry(1000,1000,110,60);
+	Score_number->setFont(QFont("Courier",70,QFont::Bold));
 
 	Play = new QPushButton(this);
 	Play->setText("Play");
 	Play->setGeometry(300,180,200,100);
-	Play->setFont(QFont("Courier",15,QFont::Bold));
+	Play->setFont(QFont("Courier",35,QFont::Bold));
 	connect( Play, SIGNAL(clicked()), this, SLOT(setStart()));
 //	QObject::connect( Play, SIGNAL(clicked()),this,SLOT( new_window() ) );
 
+	Reset = new QPushButton(this);
+	Reset->setText("Reset");
+	Reset->setGeometry(1000,1000,200,100);
+	Reset->setFont(QFont("Courier",35,QFont::Bold));
+	connect( Reset, SIGNAL(clicked()), this, SLOT(setReset()));
 
 
 	myBall.setLocation();
         
-	  touchText= new QLabel(this);
-          touchText->setNum(0);
-          touchText->setFont(QFont("Courier", 18, QFont::Bold));
-          touchText->setGeometry(600,300,110,50);
+	  //touchText= new QLabel(this);
+          //touchText->setNum(0);
+          //touchText->setFont(QFont("Courier", 18, QFont::Bold));
+          //touchText->setGeometry(600,300,110,50);
 
      	btnDetect= new QPushButton(this);
      	btnDetect->setText("Detect");
-     	btnDetect->setFont(QFont("Courier", 18, QFont::Bold));
-    	btnDetect->setGeometry(580,100,110,50);
+     	btnDetect->setFont(QFont("Courier", 30, QFont::Bold));
+    	//btnDetect->setGeometry(580,100,110,50);
+	btnDetect->setGeometry(1000,1000,60,50);
 	connect( btnDetect, SIGNAL(clicked()), this, SLOT(setDetect()));
 	
 
 	connect(timer, SIGNAL(timeout()), this, SLOT(update()));
 
+	Out_of_zone_warning = new QLabel(this);
+	Out_of_zone_warning->setText("You are out of detect zone!!");
+	Out_of_zone_warning->setFont(QFont("Courier",18,QFont::Bold));
+	Out_of_zone_warning->setGeometry(1000,1000,200,20);
 	
 	//timer->start(30);
 }
@@ -158,49 +172,91 @@ void PainterWidget::paintEvent(QPaintEvent* event){
        QPainter painter(this);
 
 	if(!startGame){
+		score_number = SCORE_NUM;
+		health_number = HEALTH_NUM;
+		Health_number->setNum(health_number);
+                Score_text->setGeometry(1000,1000,80,30);
+                Score_number->setGeometry(1000,1000,110,70);
+		Play->setGeometry(300,180,200,100);
+		Reset->setGeometry(1000,1000,200,100);
 		painter.drawImage(0,0,dodgeball_display);  //start game screen
 	}
+	else if(game_over){
+		myBall.ballSpeedX = 15;
+		myBall.ballSpeedY = 10;
+		Health_number->setNum(health_number);
+		detect = 0;
+                Health_text->setGeometry(1000,1000,90,30);
+                Health_number->setGeometry(1000,1000,80,70);
+                Score_text->setGeometry(320,20,80,30);
+                Score_number->setGeometry(350,80,150,70);
+                Out_of_zone_warning->setGeometry(1000,1000,200,20);
+		painter.drawImage(0,0, gameover_display);
+	}
 
-	else if(startGame ==1){
-	timer->start(30);
-	Health_text->setGeometry(50,50,150,60);
-	Health_number->setGeometry(50,120,80,60);
-	Score_text->setGeometry(650,50,120,60);
-	Score_number->setGeometry(650,120,80,60);
-	Play->setGeometry(1000,1000,200,100);
+	else if(startGame ==1){//in game
+		timer->start(30);
+		Play->setGeometry(1000,1000,200,100);
+		btnDetect->setGeometry(350,300,110,50);
 		startGame = 2;
 	        capture(&fd,&camera_buffers,&ori_img,1,0);
        		yuyv2rgb(CAM_WIDTH,CAM_HEIGHT,ori_img,img);
 		image= QImage((unsigned char *)img,CAM_WIDTH,CAM_HEIGHT,QImage::Format_RGB32);
 		iplimg=QImageToIplImage(&image);	
-		painter.drawImage(0,0,process_qImage);  //image after filtering
+		painter.drawImage(200,10,process_qImage);  //image after filtering
 	}
-	else if(startGame ==2 && passTouch){
-	        capture(&fd,&camera_buffers,&ori_img,1,0);
-       		yuyv2rgb(CAM_WIDTH,CAM_HEIGHT,ori_img,img);
-		image= QImage((unsigned char *)img,CAM_WIDTH,CAM_HEIGHT,QImage::Format_RGB32);
-		image = image.mirrored(true,false);
-		iplimg=QImageToIplImage(&image);
-		painter.drawImage(0,0,process_qImage);  //image after filtering
-	}
-	else{
-	        capture(&fd,&camera_buffers,&ori_img,1,0);
-       		yuyv2rgb(CAM_WIDTH,CAM_HEIGHT,ori_img,img);
-		image= QImage((unsigned char *)img,CAM_WIDTH,CAM_HEIGHT,QImage::Format_RGB32);
-		image = image.mirrored(true,false);
-		iplimg=QImageToIplImage(&image);	
-		painter.drawImage(0,0,image);  //image after filtering
-}
+	else if(startGame ==2 && passTouch){ //detected hand or body		
 
+                Out_of_zone_warning->setGeometry(1000,1000,200,20);
+
+		Health_text->setGeometry(20,100,90,30);
+                Health_number->setGeometry(30,140,80,70);
+                Score_text->setGeometry(650,100,80,30);
+                Score_number->setGeometry(650,140,110,70);
+                Score_number->setNum(score_number);//score update
+               // btnDetect->setGeometry(1000,1000,110,50);
+
+	        capture(&fd,&camera_buffers,&ori_img,1,0);
+       		yuyv2rgb(CAM_WIDTH,CAM_HEIGHT,ori_img,img);
+		image= QImage((unsigned char *)img,CAM_WIDTH,CAM_HEIGHT,QImage::Format_RGB32);
+	//	image = image.mirrored(true,false);
+		iplimg=QImageToIplImage(&image);
+		painter.drawImage(200,10,process_qImage);  //image after filtering
+	}
+	else{  //undetected hand or body
+		if(detect==1){
+                	Out_of_zone_warning->setGeometry(300,300,300,20);
+		}
+
+		Health_text->setGeometry(20,100,90,30);
+                Health_number->setGeometry(30,140,80,70);
+                Score_text->setGeometry(650,100,80,30);
+                Score_number->setGeometry(650,140,110,70);		
+                Score_number->setNum(score_number);//score update
+
+	        capture(&fd,&camera_buffers,&ori_img,1,0);
+       		yuyv2rgb(CAM_WIDTH,CAM_HEIGHT,ori_img,img);
+		image= QImage((unsigned char *)img,CAM_WIDTH,CAM_HEIGHT,QImage::Format_RGB32);
+	//	image = image.mirrored(true,false);
+		iplimg=QImageToIplImage(&image);	
+		painter.drawImage(200,10,image);  //image after filtering
+	}	
+	
+}
 //	painter.drawImage(0,0,image);// raw image from camera
 
 
-}
 
-void PainterWidget::addBall(IplImage *newBall){
+
+void PainterWidget::addBall(IplImage *newBall, IplImage *gameover){
 	dodgeball = newBall;
-	dodgeball = img_resize(dodgeball, 800,720);
+	dodgeball = img_resize(dodgeball, 800,480);
 	dodgeball_display = cvxCopyIplImage(dodgeball, dodgeball_display);
+
+	game_over_img = gameover;
+	game_over_img = img_resize(game_over_img, 800,480);
+	gameover_display = cvxCopyIplImage(game_over_img, gameover_display);
+	
 }
 
 
@@ -255,10 +311,18 @@ void PainterWidget::setStart(){//game starter
 	repaint();
 }
 
+void PainterWidget::setReset(){//game reset
+	game_over = 0;
+	startGame = 0;
+	repaint();
+}
+
 void PainterWidget::setDetect(){//set background image
 	detect = 1;
 	Mat tempBackground(iplimg);
 	backgroundImage = tempBackground;
+        btnDetect->setGeometry(1000,1000,110,50);
+
 }
 
 
@@ -303,24 +367,8 @@ void PainterWidget::update(){
 	Canny( blur, edge, 50, 150, 3);
 	edge.convertTo(draw, CV_8U);//-------------------------------------------------draw: final output camera
 	
-	Mat cir = Mat::zeros( CAM_HEIGHT, CAM_WIDTH, CV_8U ); //used for the backbone of the circle
-	circle( cir, Point( myBall.ballX, myBall.ballY ), 32.0, Scalar( 255, 255, 255 ), -1, 8 );
-	
-	Mat intersection = (cir & draw);
-	touch  = cv::sum(intersection);
-	if(touch[0]){ //ball hits player
-		myBall.ballHit();
-		health_number--;	
-		Health_number->setNum(health_number);
-	}
-	
-	myBall.setLocation();//update ball location
-	
 	Mat upperRec = Mat::zeros( CAM_HEIGHT, CAM_WIDTH, CV_8U ); //used for the backbone of the circle
-	rectangle(upperRec, Point(0,0), Point(CAM_WIDTH, CAM_HEIGHT/4), Scalar( 255, 255, 255 ), -1, 8);
-	Mat lowerRec = Mat::zeros( CAM_HEIGHT, CAM_WIDTH, CV_8U ); //used for the backbone of the circle
-	rectangle(lowerRec, Point(0,CAM_HEIGHT/4), Point(CAM_WIDTH, CAM_HEIGHT), Scalar( 255, 255, 255 ), -1, 8);
-
+	rectangle(upperRec, Point(0,0), Point(CAM_WIDTH, CAM_HEIGHT), Scalar( 255, 255, 255 ), -1, 8);
 	
 	Mat upperRec_intersect = (upperRec & draw);
 	touchUpper  = cv::sum(upperRec_intersect);
@@ -331,26 +379,53 @@ void PainterWidget::update(){
 		upperTouch = 0;
 	}
 
-	Mat lowerRec_intersect = (lowerRec & draw);
-	touchLower  = cv::sum(lowerRec_intersect);
-	if(touchLower[0]){ //ball hits player
-		lowerTouch=1;
-	}
-	else{
-		lowerTouch = 0;
-	}
 
-	if(!upperTouch && lowerTouch){
+	if(upperTouch){
 		passTouch = 1;	
+		
+		score_number+=1; //score plus
+       		Score_number->setNum(score_number);//score update
+		if(score_number%30 == 0 && score_number >0){
+			myBall.ballSpeed();	
+		}
+
 	}
 	else{
 		passTouch = 0;
 	}
 
+	Mat cir = Mat::zeros( CAM_HEIGHT, CAM_WIDTH, CV_8U ); //used for the backbone of the circle
+	circle( cir, Point( myBall.ballX, myBall.ballY ), 32.0, Scalar( 255, 255, 255 ), -1, 8 );
+	
+	Mat intersection = (cir & draw);
+	touch  = cv::sum(intersection);
+	if(touch[0] && passTouch){ //ball hits player
+		myBall.ballHit();
+		health_number-=5;	
+		Health_number->setNum(health_number);
+		if(health_number==0){
+			game_over = 1;
+			Reset->setGeometry(300,350,200,100);
+		}
+		if(score_number > 10){
+	                score_number-=10; //score mins
+		}
+
+		if(score_number < 10 && score_number >= 10){
+			score_number = 0;
+		}        
+
+	        Score_number->setNum(score_number);//score update
+
+
+	}
+	
+	myBall.setLocation();//update ball location
+	
 
 	Mat combine = Mat::zeros( CAM_HEIGHT, CAM_WIDTH, CV_8U ); // for combining both Camera and ball
 	cout<<passTouch<<endl;//"Y:"<<myBall.ballY<<endl<<"X:"<<myBall.ballX<<endl;
-	touchText -> setNum(touch[0]);//debugging	
+	//touchText -> setNum(touch[0]);//debugging	
 		
 	Mat cir2 = Mat::zeros( CAM_HEIGHT, CAM_WIDTH, original.type() ); //front end of ball
 	circle( cir2, Point( myBall.ballX, myBall.ballY ), 32.0, Scalar( 255, 5, 155 ), -1, 8 );

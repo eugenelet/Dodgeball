@@ -14,6 +14,7 @@ class Ball{
 		float ballSpeedY;	
 		void setLocation();
 		void ballHit();
+		void ballSpeed();
 
 };
 #endif
